@@ -1,0 +1,138 @@
+###################################################
+op.orig <-
+options(SweaveHooks=
+        list(fig=function() par(mar=c(5.1, 4.1, 1.1, 2.1))),
+        width = 75,
+        digits = 5,
+        prompt = "R> ")
+
+###################################################
+library("pcalg")
+data("gmG")
+
+
+###################################################
+suffStat <- list(C = cor(gmG$x), n = nrow(gmG$x))
+pc.fit <- pc(suffStat, indepTest = gaussCItest,
+             p = ncol(gmG$x), alpha = 0.01)
+library("Rgraphviz")
+par(mfrow = c(1,2))
+plot(gmG$g, main = "")
+plot(pc.fit, main = "")
+
+
+###################################################
+ida(1, 6, cov(gmG$x), pc.fit@graph)
+
+
+###################################################
+idaFast(1, c(4,5,6), cov(gmG$x), pc.fit@graph)
+
+
+###################################################
+suffStat <- list(C = cor(gmG$x), n = nrow(gmG$x))
+pc.fit <- pc(suffStat, indepTest=gaussCItest, p = ncol(gmG$x), alpha = 0.01)
+par(mfrow = c(1,2))
+plot(gmG$g, main = "")
+plot(pc.fit, main = "")
+
+
+###################################################
+data("gmD")
+suffStat <- list(dm = gmD$x, nlev = c(3,2,3,4,2), adaptDF = FALSE)
+skel.fit <- skeleton(suffStat, indepTest = disCItest,
+                     p = ncol(gmD$x), alpha = 0.01)
+par(mfrow = c(1,2))
+plot(gmD$g, main = "")
+plot(skel.fit, main = "")
+
+
+###################################################
+data("gmL")
+suffStat1 <- list(C = cor(gmL$x), n = nrow(gmL$x))
+pag.est <- fci(suffStat1, indepTest = gaussCItest,
+               p = ncol(gmL$x), alpha = 0.01, labels = as.character(2:5))
+par(mfrow = c(1,2))
+plot(gmL$g, main = "")
+plot(pag.est)
+
+
+###################################################
+data("gmI")
+suffStat <- list(C = cor(gmI$x), n = nrow(gmI$x))
+pc.fit <- pc(suffStat, indepTest=gaussCItest,
+             p = ncol(gmI$x), alpha = 0.01)
+
+
+###################################################
+par(mfrow = c(1,2))
+plot(gmI$g, main = "")
+plot(pc.fit, main = "")
+
+
+###################################################
+am.pdag <- wgtMatrix(pc.fit@graph)
+ad <- allDags(am.pdag, am.pdag, NULL)
+gDag <- vector("list", nrow(ad))
+for (i in 1:nrow(ad)) gDag[[i]] <- as(matrix(ad[i, ], 7, 7), "graphNEL")
+par(mfrow = c(3,2))
+for (i in 1:6) plot(gDag[[i]], main = paste("DAG",i))
+
+
+###################################################
+sfsmisc::mult.fig(6)
+for (i in 1:6) plot(gDag[[i]], main = paste("DAG",i))
+
+
+###################################################
+ida(2, 5, cov(gmI$x), pc.fit@graph, method = "global", verbose = FALSE)
+
+
+###################################################
+ida(2,5, cov(gmI$x), pc.fit@graph, method = "local")
+
+
+###################################################
+suffStat <- list(C = cor(gmI$x), n = nrow(gmI$x))
+pc.fit <- pc(suffStat, indepTest=gaussCItest, p=ncol(gmI$x), alpha = 0.01)
+
+(eff.est1 <- ida(2,5, cov(gmI$x), pc.fit@graph, method="local"))
+(eff.est2 <- ida(2,6, cov(gmI$x), pc.fit@graph, method="local"))
+(eff.est3 <- ida(2,7, cov(gmI$x), pc.fit@graph, method="local"))
+
+(eff.estF <- idaFast(2, c(5,6,7), cov(gmI$x), pc.fit@graph))
+
+
+###################################################
+myCItest <- function(x,y,S, suffStat) {
+  if (length(S) == 0) {
+    x. <- suffStat[,x]
+    y. <- suffStat[,y]
+  } else {
+    rxy <- resid(lm.fit(y= suffStat[,c(x,y)], x= cbind(1, suffStat[,S])))
+    x. <- rxy[,1];  y. <- rxy[,2]
+  }
+  cor.test(x., y.)$p.value
+}
+
+
+###################################################
+suffStat <- list(C = cor(gmG$x), n = 5000)
+pc.fit <- pc(suffStat, indepTest=gaussCItest, p = 8, alpha = 0.01)
+
+
+###################################################
+pc.myfit <- pc(suffStat = gmG$x, indepTest = myCItest,
+               p = 8, alpha = 0.01)
+par(mfrow = c(1,2))
+plot(pc.fit, main = "")
+plot(pc.myfit, main = "")
+
+
+###################################################
+toLatex(sessionInfo())
+
+
+###################################################
+options(op.orig)
+
